@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "npx vite build",
-    "build:dev": "npx vite build --mode development",
+    "build": "node ./node_modules/vite/bin/vite.js build",
+    "vercel-build": "node ./node_modules/vite/bin/vite.js build",
+    "build:dev": "node ./node_modules/vite/bin/vite.js build --mode development",
     "preview": "npx vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
