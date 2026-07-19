@@ -8,6 +8,8 @@ export type CartItem = {
   image: string;
   size: string;
   qty: number;
+  /** Shopify Merchandise GID — required for checkout */
+  variantId?: string;
 };
 
 type CartContextValue = {
@@ -24,7 +26,7 @@ type CartContextValue = {
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
-const STORAGE_KEY = "lss-cart-v1";
+const STORAGE_KEY = "lss-cart-v2";
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);

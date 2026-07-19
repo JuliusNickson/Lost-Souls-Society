@@ -1,35 +1,41 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Layout } from "@/components/site/Layout";
-import { zipHoodieColorways } from "@/lib/products";
+import { getProducts } from "@/lib/api/products.functions";
+import { products as fallbackProducts } from "@/lib/products";
 import heroVideo from "@/assets/after-hours-ss26.mp4.asset.json";
 
-
-
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Lost Souls Society — After Hours SS26" },
-      {
-        name: "description",
-        content:
-          "AFTER HOURS SS26. Limited drop streetwear from Lost Souls Society. Tbilisi & New York.",
-      },
-      { property: "og:title", content: "Lost Souls Society — After Hours SS26" },
-      {
-        property: "og:description",
-        content: "A society for the lost. Limited drops, post-rave aesthetic.",
-      },
-      { property: "og:image", content: zipHoodieColorways[0].image },
-      { name: "twitter:image", content: zipHoodieColorways[0].image },
-    ],
-  }),
+  loader: () => getProducts(),
+  head: ({ loaderData }) => {
+    const image =
+      loaderData?.products?.[0]?.image ?? fallbackProducts[0].image;
+    return {
+      meta: [
+        { title: "Lost Souls Society — After Hours SS26" },
+        {
+          name: "description",
+          content:
+            "AFTER HOURS SS26. Limited drop streetwear from Lost Souls Society. Tbilisi & New York.",
+        },
+        { property: "og:title", content: "Lost Souls Society — After Hours SS26" },
+        {
+          property: "og:description",
+          content: "A society for the lost. Limited drops, post-rave aesthetic.",
+        },
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image },
+      ],
+    };
+  },
   component: HomePage,
 });
 
 function HomePage() {
+  const { products } = Route.useLoaderData();
+  const colorways = products.length > 0 ? products : fallbackProducts;
+
   return (
     <Layout>
-      {/* HERO */}
       <section className="relative flex h-[100svh] min-h-[680px] flex-col items-center justify-center overflow-hidden px-6 text-center">
         <div className="absolute inset-0 z-0">
           <video
@@ -61,8 +67,6 @@ function HomePage() {
         </div>
       </section>
 
-
-      {/* AFTER HOURS DROP */}
       <section className="px-6 pb-32 md:px-10">
         <div className="mx-auto max-w-7xl">
           <div className="mb-16 flex flex-col items-start justify-between gap-10 md:flex-row md:items-end">
@@ -86,11 +90,9 @@ function HomePage() {
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
           </div>
-
         </div>
       </section>
 
-      {/* COLORWAY STRIP */}
       <section className="border-t border-border bg-background px-6 py-24 md:px-10">
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 flex items-end justify-between border-b border-border pb-4">
@@ -105,7 +107,7 @@ function HomePage() {
             </span>
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {zipHoodieColorways.map((h) => (
+            {colorways.map((h) => (
               <Link to="/shop" key={h.slug} className="group flex h-full flex-col items-center text-center">
                 <div className="aspect-square w-full overflow-hidden">
                   <img
@@ -128,7 +130,6 @@ function HomePage() {
           </div>
         </div>
       </section>
-
     </Layout>
   );
 }

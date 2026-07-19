@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Layout } from "@/components/site/Layout";
-import { products } from "@/lib/products";
+import { getProducts } from "@/lib/api/products.functions";
+import { getVariantForSize, type Product } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { useLocale } from "@/lib/locale";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/shop")({
+  loader: () => getProducts(),
   head: () => ({
     meta: [
       { title: "Shop — After Hours Zip Hoodie — Lost Souls Society" },
@@ -26,13 +28,20 @@ export const Route = createFileRoute("/shop")({
 });
 
 function ShopPage() {
+  const { products } = Route.useLoaderData();
   const { add } = useCart();
   const { convert, locale } = useLocale();
-  const [selectedSlug, setSelectedSlug] = useState(products[0].slug);
+  const [selectedSlug, setSelectedSlug] = useState(products[0]?.slug ?? "");
   const [size, setSize] = useState("M");
   const detailRef = useRef<HTMLDivElement | null>(null);
 
-  const selected = products.find((p) => p.slug === selectedSlug) ?? products[0];
+  const selected =
+    products.find((p) => p.slug === selectedSlug) ?? products[0];
+
+  const sizeOptions = useMemo(() => {
+    if (!selected?.variants?.length) return ["XS", "S", "M", "L", "XL"];
+    return selected.variants.map((v) => v.size);
+  }, [selected]);
 
   const selectAndScroll = (slug: string) => {
     setSelectedSlug(slug);
@@ -41,20 +50,36 @@ function ShopPage() {
     });
   };
 
-  const handleAdd = (product = selected, chosenSize = size) => {
-    if (product.soldOut) return;
+  const handleAdd = (product: Product = selected, chosenSize = size) => {
+    if (!product || product.soldOut) return;
+    const variant = getVariantForSize(product, chosenSize);
+    if (variant && !variant.available) {
+      toast.error(`Size ${chosenSize} is sold out`);
+      return;
+    }
     add({
       slug: product.slug,
       name: product.name,
       detail: product.detail,
-      price: product.price,
+      price: variant?.price ?? product.price,
       image: product.image,
       size: chosenSize,
+      variantId: variant?.variantId,
     });
     toast(`Added — ${product.name}`, {
       description: `${product.colorway ?? ""} · Size ${chosenSize}`,
     });
   };
+
+  if (!selected) {
+    return (
+      <Layout>
+        <section className="px-6 pt-40 pb-32 md:px-10">
+          <p className="text-muted-foreground">No products available.</p>
+        </section>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -83,7 +108,7 @@ function ShopPage() {
 
       <section className="px-6 py-20 md:px-10">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-16 md:grid-cols-4 md:gap-x-6">
-          {products.map((p, i) => (
+          {products.map((p) => (
             <button
               type="button"
               key={p.slug}
@@ -127,7 +152,6 @@ function ShopPage() {
         </div>
       </section>
 
-      {/* Product detail */}
       <section ref={detailRef} className="scroll-mt-24 border-t border-border px-6 py-24 md:px-10">
         <div className="mx-auto max-w-7xl">
           <span className="text-eyebrow text-muted-foreground">Specimen — {selected.code}</span>
@@ -192,16 +216,21 @@ function ShopPage() {
                 <div>
                   <span className="text-eyebrow block text-muted-foreground">Size</span>
                   <div className="mt-3 flex gap-2">
-                    {["XS", "S", "M", "L", "XL"].map((s) => {
+                    {sizeOptions.map((s) => {
                       const active = s === size;
+                      const variant = getVariantForSize(selected, s);
+                      const unavailable = variant ? !variant.available : false;
                       return (
                         <button
                           key={s}
+                          disabled={unavailable}
                           onClick={() => setSize(s)}
                           className={`text-eyebrow flex h-12 w-12 items-center justify-center border transition-colors ${
                             active
                               ? "border-foreground bg-foreground text-background"
-                              : "border-border text-foreground hover:border-foreground"
+                              : unavailable
+                                ? "cursor-not-allowed border-border text-muted-foreground line-through"
+                                : "border-border text-foreground hover:border-foreground"
                           }`}
                         >
                           {s}
